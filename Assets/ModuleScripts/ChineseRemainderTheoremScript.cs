@@ -19,7 +19,7 @@ public class ChineseRemainderTheoremScript : ModuleScript
     [SerializeField]
     internal KMSelectable[] _NumberButtons;
 
-    private bool _isModuleSolved, _isSeedSet;
+    private bool _isModuleSolved, _isSeedSet, _isAnswerCorrect = true;
     internal int _seed, _secret, _depth, _index, _lowestCommonMultiple;
     internal List<int> _moduli = new List<int>(), _remainder = new List<int>();
 
@@ -54,22 +54,16 @@ public class ChineseRemainderTheoremScript : ModuleScript
             _NumberButtons[i].Assign(onInteract: () => { NumberPress(x); });
         }
 
-        _depth = _Rnd.Next(4, 11);
+        _depth = _Rnd.Next(4, 9);
         _index = 0;
         do
         {
-            _moduli.Clear();
-            for (int i = 0; i < _depth; i++)
-                _moduli.Add(_Rnd.Next(2, 50));
-            _lowestCommonMultiple = LowestCommonMultiple(_moduli.ToArray()[0], _moduli.ToArray()[1]);
-            for (int i = 2; i < _depth; i++)
-            {
-                _lowestCommonMultiple = LowestCommonMultiple(_lowestCommonMultiple, _moduli.ToArray()[i]);
-            }
+            _moduli = Enumerable.Range(2, 50).ToArray().Shuffle().Take(_depth).ToList();
+            _lowestCommonMultiple = _moduli.Aggregate(1, (a, b) => LowestCommonMultiple(a, b));
         }
         while (_lowestCommonMultiple < 100 || int.MaxValue < _lowestCommonMultiple);
 
-        _secret = _Rnd.Next(_moduli.ToArray().Max(), (int)_lowestCommonMultiple);
+        _secret = _Rnd.Next(_moduli.ToArray().Max(), _lowestCommonMultiple);
 
         foreach(int moduli in _moduli)
             _remainder.Add(_secret % moduli);
@@ -79,14 +73,14 @@ public class ChineseRemainderTheoremScript : ModuleScript
         for(int i = 0; i < _moduli.LengthOrDefault(); i++)
             Log("The number, modulo " + _moduli.ToArray()[i] + " is equal to " + _remainder.ToArray()[i]);
 
-        Log("Therefore, the solution is: " + _secret.ToString());
+        Log("Therefore, a possible solution is: " + _secret.ToString());
 
         _OutputDisplay.text = "N % " + _moduli.ToArray()[_index] + " = " + _remainder.ToArray()[_index];
     }
 
     private int LowestCommonMultiple(int a, int b)
     {
-        return (a / GreatestCommonDivisor(a, b)) * b;
+        return a * b / GreatestCommonDivisor(a, b);
     }
 
     private int GreatestCommonDivisor(int a, int b)
@@ -121,7 +115,10 @@ public class ChineseRemainderTheoremScript : ModuleScript
         if (_isModuleSolved)
             return;
         ButtonEffect(_SubmitButton, 0.1f, KMSoundOverride.SoundEffect.ButtonPress);
-        if(_Input.text == _secret.ToString())
+        for (int i = 0; i < _moduli.LengthOrDefault(); i++)
+            if (!(int.Parse(_Input.text) % _moduli.ToArray()[i] == _remainder.ToArray()[i]))
+                _isAnswerCorrect = false;
+        if(_isAnswerCorrect)
         {
             _isModuleSolved = true;
             Log("The correct number has been submitted. Module solved!");
@@ -134,7 +131,10 @@ public class ChineseRemainderTheoremScript : ModuleScript
         {
             Log("The number submitted, " + _Input.text + ", is incorrect. Strike and reset!");
             _Input.text = "";
+            _moduli.Clear();
+            _remainder.Clear();
             _Module.HandleStrike();
+            _isAnswerCorrect = true;
             _isSeedSet = false;
             Start();
         }

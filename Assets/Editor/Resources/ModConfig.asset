@@ -15,6 +15,6 @@ MonoBehaviour:
   title: Chinese Remainder Theorem
   author: Eltrick
   description: It's fun isn't it?
-  version: 1.0
+  version: 1.4.42069
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 0e931e68b69207b47bc1d9ddf480cb33, type: 3}
